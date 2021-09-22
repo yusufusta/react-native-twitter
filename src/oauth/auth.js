@@ -5,18 +5,19 @@ import URLSearchParams from 'url-search-params';
 import request from './request';
 import {query} from '../util';
 
-function getRequestToken(tokens, callbackUrl, accessType) {
+function getRequestToken(tokens, accessType) {
   const method = 'POST';
-  const url = 'https://api.twitter.com/oauth/request_token';
-  const body = accessType ? {x_auth_access_type: accessType} : {};
-  return request(tokens, url, {method, body}, {oauth_callback: callbackUrl})
+  const url = 'https://api.twitter.com/oauth/access_token';
+  const body = accessType;
+
+  return request(tokens, url, {method: method, body: body})
     .then(response => response.text())
     .then((text) => {
-      const params = new URLSearchParams(text);
-      return {
-        requestToken: params.get('oauth_token'),
-        requestTokenSecret: params.get('oauth_token_secret'),
-      };
+      var q = {};
+      text.split('&').forEach(function(i){
+        q[i.split('=')[0]]=i.split('=')[1];
+      });
+      return q;
     });
 }
 
@@ -60,14 +61,11 @@ Linking.addEventListener('url', ({url}) => {
 });
 
 export default async function auth(
-  tokens,
-  callbackUrl,
-  {accessType, forSignIn = false, forceLogin = false, screenName = ''} = {},
+  tokens,accessType
 ) {
-  const usePin = typeof callbackUrl.then === 'function';
-  const {requestToken, requestTokenSecret} = await getRequestToken(
+  const usePin = true;
+  return await getRequestToken(
     tokens,
-    usePin ? 'oob' : callbackUrl,
     accessType,
   );
   Linking.openURL(`https://api.twitter.com/oauth/${forSignIn ? 'authenticate' : 'authorize'}?${
